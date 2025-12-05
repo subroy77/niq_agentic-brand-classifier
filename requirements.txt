@@ -1,0 +1,16 @@
+# core
+dspy-ai>=2.5.0
+serpapi>=0.1.4
+python-dotenv
+spacy>=3.5.0
+dspy-ai
+
+google-search-results>=2.4.2
+pytest
+
+# additional dependencies
+numpy
+pandas
+scikit-learn
+torch
+transformers
