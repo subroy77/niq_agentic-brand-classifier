@@ -6,22 +6,30 @@ from typing import List
 
 import dspy
 
-from agent.pipeline_agentic import classify_queries
+from agent.pipeline_agentic import classify_queries, classify_single_query
 
 
+# -----------------------------------------------------------------------------
+# 1. Configure DSPy + Phi-3 via Ollama (LOCAL POC)
+# -----------------------------------------------------------------------------
+
+# These env vars keep existing behaviour if NIQ already uses them
+DSPY_MODEL_PROVIDER = os.getenv("DSPY_MODEL_PROVIDER", "ollama")  # for future use
 DSPY_MODEL_NAME = os.getenv("DSPY_MODEL_NAME", "phi3")
 
+# For now we assume Ollama + Phi-3, as in the original POC
+lm = dspy.Ollama(model=DSPY_MODEL_NAME)
+dspy.settings.configure(lm=lm)
 
-def configure_lm() -> None:
-    """
-    Configure DSPy to use Phi-3 via Ollama (local POC).
-    Adjust this function only if NIQ wants a different LM backend.
-    """
-    lm = dspy.Ollama(model=DSPY_MODEL_NAME)
-    dspy.settings.configure(lm=lm)
 
+# -----------------------------------------------------------------------------
+# 2. Helper: load queries
+# -----------------------------------------------------------------------------
 
 def load_queries_from_file(path: Path) -> List[str]:
+    """
+    Simple loader: one user prompt per non-empty line.
+    """
     queries: List[str] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -31,21 +39,19 @@ def load_queries_from_file(path: Path) -> List[str]:
     return queries
 
 
+# -----------------------------------------------------------------------------
+# 3. Main: run classification and write enhanced CSV to output/
+# -----------------------------------------------------------------------------
+
 def main() -> None:
     """
-    NIQ Agentic Brand Classifier (enhanced POC).
-
-    Behaviour:
-    - If ABC_INPUT_FILE is set -> read prompts from that text file
-      (one query per non-empty line).
-    - Else -> read a single query from stdin.
-    - Run agentic pipeline (brand, category, sub-category, validation,
+    Entry point for the NIQ Agentic Brand Classifier (enhanced POC).
+    - Reads prompts from a text file if ABC_INPUT_FILE is set (one per line).
+    - Otherwise, reads a single query from stdin.
+    - Runs the agentic pipeline (brand, category, sub-category, validation,
       clarification).
-    - Write results to output/brand_results_agentic_*.csv and echo a few
-      to console.
+    - Writes results to output/brand_results_agentic_*.csv
     """
-
-    configure_lm()
 
     input_file_env = os.getenv("ABC_INPUT_FILE", "").strip()
     if input_file_env:
@@ -54,6 +60,7 @@ def main() -> None:
             raise FileNotFoundError(f"Input file not found: {input_path}")
         queries = load_queries_from_file(input_path)
     else:
+        # Single interactive query mode
         print("ABC (agentic) – no ABC_INPUT_FILE set, please type a single query:")
         user_query = input("> ").strip()
         if not user_query:
@@ -63,8 +70,10 @@ def main() -> None:
 
     print(f"Classifying {len(queries)} query(ies) with agentic pipeline...")
 
+    # Run pipeline
     results = classify_queries(queries)
 
+    # Ensure output directory exists
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
@@ -92,6 +101,7 @@ def main() -> None:
 
     print(f"Done. Enhanced POC results written to: {csv_path}")
 
+    # Also print results to console for immediate inspection
     print("\nSample results:")
     for r in results[:5]:
         print("---------------------------------------------------")
