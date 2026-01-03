@@ -1,0 +1,31 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.6.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+    - name: Sync Files to EC2
+      run: |
+        rsync -avz --delete \
+          ./ ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/bedrock-app/
+
+    - name: Install & Restart
+      run: |
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          cd /home/ubuntu/bedrock-app
+          sudo systemctl restart bedrock-app
+        EOF
