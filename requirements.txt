@@ -15,3 +15,8 @@ torch
 transformers
 
 dspy-ai
+
+boto3
+fastapi
+uvicorn
+python-dotenv
