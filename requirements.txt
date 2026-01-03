@@ -14,9 +14,10 @@ scikit-learn
 torch
 transformers
 
-dspy-ai
+spacy-transformers
 
 boto3
 fastapi
 uvicorn
 python-dotenv
+
